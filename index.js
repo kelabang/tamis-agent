@@ -1,18 +1,20 @@
 const { join } = require('path');
 const fs = require('fs');
 const { readdir, stat } = fs;
-
 const { promisify } = require('util');
 
-const rootConfig = require('./root.conf');
+const { config: {
+    ext: rootConfigExt,
+    path: rootConfigPath
+} } = require('./root.conf');
 
-console.log('rootConfig=', rootConfig);
+const NodeConfig = require('./NodeConfig');
 
 const readdirP = promisify(readdir);
 const statP = promisify(stat);
 
 async function rreaddir(dir, allFiles = []) {
-    const files = (await readdirP(dir)).filter(item => item.includes('.conf') > 0).map(f => join(dir, f));
+    const files = (await readdirP(dir)).filter(item => item.includes(rootConfigExt) > 0).map(f => join(dir, f));
     allFiles.push(...files);
     await Promise.all(
         files.map(
@@ -22,19 +24,44 @@ async function rreaddir(dir, allFiles = []) {
     return allFiles;
 }
 
-async function retrieveAllConfig(config) {
-    
-    const {
-        ext, 
-        path
-    } = config;
+async function retrieveAllConfig(path) {
+    return await rreaddir(path);
+}
 
-    const data = await rreaddir(path);
+function readAllConfig(paths) {
 
-    return data;
+    const cwd = process.cwd();
+
+    const nodeConfigs = paths
+        .map(path => {
+            const _path = `${cwd}/${path}`;
+            return require(_path);
+        })
+        .map(objConfig => new NodeConfig(objConfig));
+
+    return nodeConfigs;
+}
+
+async function main() {
+
+    // locate all config path
+    const pathAllConfig = await retrieveAllConfig(rootConfigPath);
+
+    // read all config path and retrieve log
+    const nodeConfigs = readAllConfig(pathAllConfig);
+
+
+    // subscribe to all config file changes
+    nodeConfigs.map(nodeConfig => {
+        nodeConfig.listen();
+        nodeConfig.on('ready', () => {
+
+        })
+        nodeConfig.on('change', logline => {
+
+        })
+    });
 
 }
 
-const pathAllConfig = retrieveAllConfig(rootConfig.config);
-
-console.log('pathAllConfig ', pathAllConfig);
+main();
