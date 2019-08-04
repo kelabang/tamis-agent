@@ -1,65 +1,27 @@
-const { join } = require('path');
-const fs = require('fs');
-const { readdir, stat } = fs;
-const { promisify } = require('util');
-
-const { config: {
-    ext: rootConfigExt,
-    path: rootConfigPath
-} } = require('./root.conf');
-
-const NodeConfig = require('./NodeConfig');
-
-const readdirP = promisify(readdir);
-const statP = promisify(stat);
-
-async function rreaddir(dir, allFiles = []) {
-    const files = (await readdirP(dir)).filter(item => item.includes(rootConfigExt) > 0).map(f => join(dir, f));
-    allFiles.push(...files);
-    await Promise.all(
-        files.map(
-            async f => (await statP(f)).isDirectory() && rreaddir(f, allFiles)
-        )
-    )
-    return allFiles;
-}
-
-async function retrieveAllConfig(path) {
-    return await rreaddir(path);
-}
-
-function readAllConfig(paths) {
-
-    const cwd = process.cwd();
-
-    const nodeConfigs = paths
-        .map(path => {
-            const _path = `${cwd}/${path}`;
-            return require(_path);
-        })
-        .map(objConfig => new NodeConfig(objConfig));
-
-    return nodeConfigs;
-}
+const {
+    prepareConfig
+} = require('./lib/readerConfig');
 
 async function main() {
 
-    // locate all config path
-    const pathAllConfig = await retrieveAllConfig(rootConfigPath);
-
-    // read all config path and retrieve log
-    const nodeConfigs = readAllConfig(pathAllConfig);
-
+    const nodeConfigs = await prepareConfig();
 
     // subscribe to all config file changes
     nodeConfigs.map(nodeConfig => {
-        nodeConfig.listen();
-        nodeConfig.on('ready', () => {
-
-        })
+        const transport = nodeConfig.listen();
+        nodeConfig.on('ready');
         nodeConfig.on('change', logline => {
-
-        })
+            const {
+                lastline,
+                nodeName,
+                name
+            } = logline;
+            transport.service('filter').create({
+                text: lastline,
+                nodename: nodeName,
+                logstream: name,
+            }).then(() => console.log('created'));
+        });
     });
 
 }
