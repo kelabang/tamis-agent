@@ -20,7 +20,7 @@ async function main() {
                 text: lastline,
                 nodename: nodeName,
                 logstream: name,
-            }).then(() => console.log('created'));
+            });
         });
     });
 
