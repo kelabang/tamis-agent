@@ -16,6 +16,7 @@ async function main() {
                 nodeName,
                 name
             } = logline;
+            console.log('send ================================>> send');
             transport.service('filter').create({
                 text: lastline,
                 nodename: nodeName,
