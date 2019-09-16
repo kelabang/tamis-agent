@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "DEBUG=* node index.js"
+    "start": "DEBUG=::nodeConfig::* node index.js"
   },
   "author": "",
   "license": "ISC",
